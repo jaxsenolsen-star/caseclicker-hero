@@ -29,6 +29,8 @@ type Reward = {
   rarity: "Mil-Spec" | "Restricted" | "Classified" | "Covert";
 };
 
+type InventoryItem = Reward & { id: number };
+
 const rewards: Reward[] = [
   { name: "M4A1-S | Night Circuit", price: 18.42, rarity: "Mil-Spec" },
   { name: "AK-47 | Heatwave", price: 52.8, rarity: "Restricted" },
@@ -36,29 +38,19 @@ const rewards: Reward[] = [
   { name: "Desert Eagle | Crimson Core", price: 389.99, rarity: "Covert" },
 ];
 
-const inventory = [
-  { price: "$50.00", tone: "cyan" },
-  { price: "$50.00", tone: "green" },
-  { price: "$50.00", tone: "red" },
-  { price: "$100.00", tone: "orange" },
-  { price: "$50.00", tone: "peach" },
-  { price: "$50.00", tone: "sunset" },
-  { price: "$50.00", tone: "spectrum" },
-  { price: "$50.00", tone: "nebula" },
-] as const;
-
 const cases = [
-  { name: "Basic Case", tone: "case-basic", image: basicCase, payout: 50 },
-  { name: "Chroma Case", tone: "case-chroma", image: chromaCase, payout: 75 },
-  { name: "Nebula Case", tone: "case-nebula", image: nebulaCase, payout: 100 },
-  { name: "Quantum Case", tone: "case-quantum", image: quantumCase, payout: 150 },
+  { name: "Basic Case", tone: "case-basic", image: basicCase, payout: 50, price: 5.2 },
+  { name: "Chroma Case", tone: "case-chroma", image: chromaCase, payout: 75, price: 8.75 },
+  { name: "Nebula Case", tone: "case-nebula", image: nebulaCase, payout: 100, price: 14.5 },
+  { name: "Quantum Case", tone: "case-quantum", image: quantumCase, payout: 150, price: 25 },
 ] as const;
 
 function Index() {
   const [tab, setTab] = useState<Tab>("inventory");
-  const [wallet, setWallet] = useState(999999999);
+  const [wallet, setWallet] = useState(0);
   const [equippedCase, setEquippedCase] = useState(0);
   const [reward, setReward] = useState<Reward | null>(null);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const activeCase = cases[equippedCase] ?? cases[0];
 
   const openCase = () => {
@@ -80,13 +72,16 @@ function Index() {
       <section className="playfield">
         <div className="click-zone">
           <div className="equipped-case">
+            <GameButton className="case-open-button" onClick={openCase} aria-label={`Open ${activeCase.name}`}>
             <img src={activeCase.image} alt={activeCase.name} width={816} height={816} />
+            </GameButton>
             <strong>{activeCase.name}</strong>
+            <span className="equipped-case-price">Case price: ${activeCase.price.toFixed(2)}</span>
             <GameButton
               className="accept-button"
-              onClick={openCase}
+              onClick={() => setWallet((value) => value + activeCase.payout)}
             >
-              ACCEPT
+              ACCEPT +${activeCase.payout.toFixed(2)}
             </GameButton>
           </div>
         </div>
@@ -109,12 +104,22 @@ function Index() {
               <div className="inventory-view">
                 <div className="inventory-grid">
                   {inventory.map((item, index) => (
-                    <div className={`inventory-item item-${item.tone}`} key={`${item.tone}-${index}`}>
-                      <strong>{item.price}</strong>
-                    </div>
+                    <GameButton
+                      className={`inventory-item rarity-${item.rarity.toLowerCase()}`}
+                      key={item.id}
+                      title={`Sell ${item.name} for $${item.price.toFixed(2)}`}
+                      onClick={() => {
+                        setWallet((value) => value + item.price);
+                        setInventory((items) => items.filter((ownedItem) => ownedItem.id !== item.id));
+                      }}
+                    >
+                      <GunPreview className="inventory-gun" />
+                      <small>{item.name}</small>
+                      <strong>${item.price.toFixed(2)}</strong>
+                    </GameButton>
                   ))}
                 </div>
-                <strong className="capacity">8/50</strong>
+                <strong className="capacity">{inventory.length}/50</strong>
               </div>
             )}
 
@@ -128,7 +133,7 @@ function Index() {
                   >
                     <img src={caseItem.image} alt="" width={816} height={816} loading="lazy" />
                     <strong>{caseItem.name}</strong>
-                    <span>Key Price: $1.20 | Case Price: $4.00</span>
+                    <span>Case Price: ${caseItem.price.toFixed(2)}</span>
                   </GameButton>
                 ))}
               </div>
@@ -165,11 +170,14 @@ function Index() {
             <GameButton
               className="collect-button"
               onClick={() => {
-                setWallet((value) => value + reward.price);
+                if (inventory.length < 50) {
+                  setInventory((items) => [...items, { ...reward, id: Date.now() + Math.random() }]);
+                }
                 setReward(null);
+                setTab("inventory");
               }}
             >
-              COLLECT
+              ADD TO INVENTORY
             </GameButton>
           </section>
         </div>
