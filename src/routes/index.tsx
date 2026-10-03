@@ -57,7 +57,6 @@ const cases = [
 function Index() {
   const [tab, setTab] = useState<Tab>("inventory");
   const [wallet, setWallet] = useState(999999999);
-  const [clicks, setClicks] = useState(0);
   const [equippedCase, setEquippedCase] = useState(0);
   const [reward, setReward] = useState<Reward | null>(null);
   const activeCase = cases[equippedCase] ?? cases[0];
@@ -66,7 +65,6 @@ function Index() {
     const roll = Math.random();
     const rewardIndex = roll < 0.5 ? 0 : roll < 0.78 ? 1 : roll < 0.95 ? 2 : 3;
     setReward(rewards[rewardIndex] ?? rewards[0]);
-    setClicks((value) => value + 1);
   };
 
   return (
