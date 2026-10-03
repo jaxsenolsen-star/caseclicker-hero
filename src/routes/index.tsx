@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { GameButton } from "../components/game-button";
+import basicCase from "../assets/basic-case.png";
+import chromaCase from "../assets/chroma-case.png";
+import nebulaCase from "../assets/nebula-case.png";
+import quantumCase from "../assets/quantum-case.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,16 +34,18 @@ const inventory = [
 ] as const;
 
 const cases = [
-  { name: "Basic Case", tone: "case-basic" },
-  { name: "Chroma Case", tone: "case-chroma" },
-  { name: "Nebula Case", tone: "case-nebula" },
-  { name: "Quantum Case", tone: "case-quantum" },
+  { name: "Basic Case", tone: "case-basic", image: basicCase, payout: 50 },
+  { name: "Chroma Case", tone: "case-chroma", image: chromaCase, payout: 75 },
+  { name: "Nebula Case", tone: "case-nebula", image: nebulaCase, payout: 100 },
+  { name: "Quantum Case", tone: "case-quantum", image: quantumCase, payout: 150 },
 ] as const;
 
 function Index() {
   const [tab, setTab] = useState<Tab>("inventory");
   const [wallet, setWallet] = useState(999999999);
   const [clicks, setClicks] = useState(0);
+  const [equippedCase, setEquippedCase] = useState(0);
+  const activeCase = cases[equippedCase] ?? cases[0];
 
   return (
     <main className="game-shell">
@@ -50,16 +56,22 @@ function Index() {
       </header>
 
       <section className="playfield">
-        <GameButton
-          aria-label="Click to earn money"
-          className="click-zone"
-          onClick={() => {
-            setClicks((value) => value + 1);
-            setWallet((value) => value + 1);
-          }}
-        >
-          {clicks > 0 && <span className="click-count">+${clicks}</span>}
-        </GameButton>
+        <div className="click-zone">
+          <div className="equipped-case">
+            <img src={activeCase.image} alt={activeCase.name} width={816} height={816} />
+            <strong>{activeCase.name}</strong>
+            <GameButton
+              className="accept-button"
+              onClick={() => {
+                setClicks((value) => value + 1);
+                setWallet((value) => value + activeCase.payout);
+              }}
+            >
+              ACCEPT
+            </GameButton>
+            {clicks > 0 && <span className="click-count">+${activeCase.payout}</span>}
+          </div>
+        </div>
 
         <aside className="panel">
           <nav className="tabs" aria-label="Game menu">
@@ -90,8 +102,13 @@ function Index() {
 
             {tab === "cases" && (
               <div className="cases-view">
-                {cases.map((caseItem) => (
-                  <GameButton className={`case-row ${caseItem.tone}`} key={caseItem.name}>
+                {cases.map((caseItem, index) => (
+                  <GameButton
+                    className={`case-row ${caseItem.tone} ${equippedCase === index ? "case-equipped" : ""}`}
+                    key={caseItem.name}
+                    onClick={() => setEquippedCase(index)}
+                  >
+                    <img src={caseItem.image} alt="" width={816} height={816} loading="lazy" />
                     <strong>{caseItem.name}</strong>
                     <span>Key Price: $1.20 | Case Price: $4.00</span>
                   </GameButton>
