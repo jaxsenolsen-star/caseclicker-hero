@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { GameButton } from "../components/game-button";
+import { GunPreview } from "../components/gun-preview";
 import basicCase from "../assets/basic-case.png";
 import chromaCase from "../assets/chroma-case.png";
 import nebulaCase from "../assets/nebula-case.png";
@@ -21,6 +22,19 @@ export const Route = createFileRoute("/")({
 });
 
 type Tab = "inventory" | "cases" | "upgrades";
+
+type Reward = {
+  name: string;
+  price: number;
+  rarity: "Mil-Spec" | "Restricted" | "Classified" | "Covert";
+};
+
+const rewards: Reward[] = [
+  { name: "M4A1-S | Night Circuit", price: 18.42, rarity: "Mil-Spec" },
+  { name: "AK-47 | Heatwave", price: 52.8, rarity: "Restricted" },
+  { name: "AWP | Nebula Rift", price: 147.35, rarity: "Classified" },
+  { name: "Desert Eagle | Crimson Core", price: 389.99, rarity: "Covert" },
+];
 
 const inventory = [
   { price: "$50.00", tone: "cyan" },
@@ -45,7 +59,15 @@ function Index() {
   const [wallet, setWallet] = useState(999999999);
   const [clicks, setClicks] = useState(0);
   const [equippedCase, setEquippedCase] = useState(0);
+  const [reward, setReward] = useState<Reward | null>(null);
   const activeCase = cases[equippedCase] ?? cases[0];
+
+  const openCase = () => {
+    const roll = Math.random();
+    const rewardIndex = roll < 0.5 ? 0 : roll < 0.78 ? 1 : roll < 0.95 ? 2 : 3;
+    setReward(rewards[rewardIndex] ?? rewards[0]);
+    setClicks((value) => value + 1);
+  };
 
   return (
     <main className="game-shell">
@@ -62,14 +84,10 @@ function Index() {
             <strong>{activeCase.name}</strong>
             <GameButton
               className="accept-button"
-              onClick={() => {
-                setClicks((value) => value + 1);
-                setWallet((value) => value + activeCase.payout);
-              }}
+              onClick={openCase}
             >
               ACCEPT
             </GameButton>
-            {clicks > 0 && <span className="click-count">+${activeCase.payout}</span>}
           </div>
         </div>
 
@@ -127,6 +145,35 @@ function Index() {
           </div>
         </aside>
       </section>
+
+      {reward && (
+        <div className="reward-backdrop" role="presentation" onClick={() => setReward(null)}>
+          <section
+            className={`reward-popup rarity-${reward.rarity.toLowerCase()}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reward-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span className="reward-label">ITEM UNBOXED</span>
+            <GunPreview className="reward-gun" />
+            <h2 id="reward-title">{reward.name}</h2>
+            <div className="reward-stats">
+              <span><small>RARITY</small>{reward.rarity}</span>
+              <span><small>VALUE</small>${reward.price.toFixed(2)}</span>
+            </div>
+            <GameButton
+              className="collect-button"
+              onClick={() => {
+                setWallet((value) => value + reward.price);
+                setReward(null);
+              }}
+            >
+              COLLECT
+            </GameButton>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
