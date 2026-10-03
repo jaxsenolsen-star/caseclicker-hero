@@ -64,7 +64,9 @@ function Index() {
   const openCase = () => {
     const roll = Math.random();
     const rewardIndex = roll < 0.5 ? 0 : roll < 0.78 ? 1 : roll < 0.95 ? 2 : 3;
-    setReward(rewards[rewardIndex] ?? rewards[0]);
+    const selectedReward = rewards[rewardIndex];
+    if (!selectedReward) return;
+    setReward(selectedReward);
   };
 
   return (
