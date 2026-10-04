@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tab = "inventory" | "cases" | "upgrades";
+type Tab = "inventory" | "cases" | "upgrades" | "index";
 
 type Reward = {
   name: string;
@@ -51,6 +51,7 @@ function Index() {
   const [equippedCase, setEquippedCase] = useState(0);
   const [reward, setReward] = useState<Reward | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [obtained, setObtained] = useState<Record<string, number>>({});
   const activeCase = cases[equippedCase] ?? cases[0];
 
   const openCase = () => {
@@ -58,6 +59,10 @@ function Index() {
     const rewardIndex = roll < 0.5 ? 0 : roll < 0.78 ? 1 : roll < 0.95 ? 2 : 3;
     const selectedReward = rewards[rewardIndex];
     if (!selectedReward) return;
+    setObtained((counts) => ({
+      ...counts,
+      [selectedReward.name]: (counts[selectedReward.name] ?? 0) + 1,
+    }));
     setReward(selectedReward);
   };
 
@@ -88,7 +93,7 @@ function Index() {
 
         <aside className="panel">
           <nav className="tabs" aria-label="Game menu">
-            {(["inventory", "cases", "upgrades"] as const).map((item) => (
+            {(["inventory", "cases", "upgrades", "index"] as const).map((item) => (
               <GameButton
                 key={item}
                 className={`tab ${tab === item ? "tab-active" : ""}`}
@@ -136,6 +141,31 @@ function Index() {
                     <span>Case Price: ${caseItem.price.toFixed(2)}</span>
                   </GameButton>
                 ))}
+              </div>
+            )}
+
+            {tab === "index" && (
+              <div className="index-view">
+                <strong className="index-title">UNBOXED ITEMS</strong>
+                <div className="index-list">
+                  {rewards.map((reward) => {
+                    const count = obtained[reward.name] ?? 0;
+                    return (
+                      <div
+                        className={`index-item rarity-${reward.rarity.toLowerCase()} ${count === 0 ? "index-locked" : ""}`}
+                        key={reward.name}
+                      >
+                        <GunPreview className="index-gun" />
+                        <div className="index-info">
+                          <small>{reward.rarity}</small>
+                          <strong>{count === 0 ? "???" : reward.name}</strong>
+                          <span>${reward.price.toFixed(2)}</span>
+                        </div>
+                        <em className="index-count">{count > 0 ? `x${count}` : ""}</em>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
