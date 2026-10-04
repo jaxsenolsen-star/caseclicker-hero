@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { GameButton } from "../components/game-button";
-import { GunPreview } from "../components/gun-preview";
+import { GUNS, type Gun } from "../lib/guns";
 import basicCase from "../assets/basic-case.png";
 import chromaCase from "../assets/chroma-case.png";
 import nebulaCase from "../assets/nebula-case.png";
@@ -23,20 +23,7 @@ export const Route = createFileRoute("/")({
 
 type Tab = "inventory" | "cases" | "upgrades" | "index";
 
-type Reward = {
-  name: string;
-  price: number;
-  rarity: "Mil-Spec" | "Restricted" | "Classified" | "Covert";
-};
-
-type InventoryItem = Reward & { id: number };
-
-const rewards: Reward[] = [
-  { name: "M4A1-S | Night Circuit", price: 18.42, rarity: "Mil-Spec" },
-  { name: "AK-47 | Heatwave", price: 52.8, rarity: "Restricted" },
-  { name: "AWP | Nebula Rift", price: 147.35, rarity: "Classified" },
-  { name: "Desert Eagle | Crimson Core", price: 389.99, rarity: "Covert" },
-];
+type InventoryItem = Gun & { id: number };
 
 const cases = [
   { name: "Basic Case", tone: "case-basic", image: basicCase, payout: 50, price: 5.2 },
@@ -45,20 +32,40 @@ const cases = [
   { name: "Quantum Case", tone: "case-quantum", image: quantumCase, payout: 150, price: 25 },
 ] as const;
 
+// Drop odds per rarity, in roll order: Mil-Spec, Restricted, Classified, Covert, Gold.
+const rarityOdds = [0.55, 0.82, 0.94, 0.99, 1] as const;
+
+function rollGun(): Gun {
+  const roll = Math.random();
+  let rarity: Gun["rarity"] = "Mil-Spec";
+  const thresholds: [number, Gun["rarity"]][] = [
+    [rarityOdds[0], "Mil-Spec"],
+    [rarityOdds[1], "Restricted"],
+    [rarityOdds[2], "Classified"],
+    [rarityOdds[3], "Covert"],
+    [rarityOdds[4], "Gold"],
+  ];
+  for (const [threshold, tier] of thresholds) {
+    if (roll < threshold) {
+      rarity = tier;
+      break;
+    }
+  }
+  const pool = GUNS.filter((gun) => gun.rarity === rarity);
+  return pool[Math.floor(Math.random() * pool.length)] ?? GUNS[0];
+}
+
 function Index() {
   const [tab, setTab] = useState<Tab>("inventory");
   const [wallet, setWallet] = useState(0);
   const [equippedCase, setEquippedCase] = useState(0);
-  const [reward, setReward] = useState<Reward | null>(null);
+  const [reward, setReward] = useState<Gun | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [obtained, setObtained] = useState<Record<string, number>>({});
   const activeCase = cases[equippedCase] ?? cases[0];
 
   const openCase = () => {
-    const roll = Math.random();
-    const rewardIndex = roll < 0.5 ? 0 : roll < 0.78 ? 1 : roll < 0.95 ? 2 : 3;
-    const selectedReward = rewards[rewardIndex];
-    if (!selectedReward) return;
+    const selectedReward = rollGun();
     setObtained((counts) => ({
       ...counts,
       [selectedReward.name]: (counts[selectedReward.name] ?? 0) + 1,
@@ -70,7 +77,12 @@ function Index() {
     <main className="game-shell">
       <header className="topbar">
         <div className="username">USERNAME</div>
-        <div className="index-label">INDEX</div>
+        <GameButton
+          className={`index-label ${tab === "index" ? "index-label-active" : ""}`}
+          onClick={() => setTab(tab === "index" ? "inventory" : "index")}
+        >
+          INDEX
+        </GameButton>
         <div className="wallet">Your Wallet: ${wallet.toFixed(2)}</div>
       </header>
 
@@ -78,7 +90,7 @@ function Index() {
         <div className="click-zone">
           <div className="equipped-case">
             <GameButton className="case-open-button" onClick={openCase} aria-label={`Open ${activeCase.name}`}>
-            <img src={activeCase.image} alt={activeCase.name} width={816} height={816} />
+              <img src={activeCase.image} alt={activeCase.name} width={816} height={816} />
             </GameButton>
             <strong>{activeCase.name}</strong>
             <span className="equipped-case-price">Case price: ${activeCase.price.toFixed(2)}</span>
@@ -93,7 +105,7 @@ function Index() {
 
         <aside className="panel">
           <nav className="tabs" aria-label="Game menu">
-            {(["inventory", "cases", "upgrades", "index"] as const).map((item) => (
+            {(["inventory", "cases", "upgrades"] as const).map((item) => (
               <GameButton
                 key={item}
                 className={`tab ${tab === item ? "tab-active" : ""}`}
@@ -108,7 +120,7 @@ function Index() {
             {tab === "inventory" && (
               <div className="inventory-view">
                 <div className="inventory-grid">
-                  {inventory.map((item, index) => (
+                  {inventory.map((item) => (
                     <GameButton
                       className={`inventory-item rarity-${item.rarity.toLowerCase()}`}
                       key={item.id}
@@ -118,7 +130,7 @@ function Index() {
                         setInventory((items) => items.filter((ownedItem) => ownedItem.id !== item.id));
                       }}
                     >
-                      <GunPreview className="inventory-gun" />
+                      <img className="inventory-gun" src={item.image} alt="" loading="lazy" />
                       <small>{item.name}</small>
                       <strong>${item.price.toFixed(2)}</strong>
                     </GameButton>
@@ -148,18 +160,18 @@ function Index() {
               <div className="index-view">
                 <strong className="index-title">UNBOXED ITEMS</strong>
                 <div className="index-list">
-                  {rewards.map((reward) => {
-                    const count = obtained[reward.name] ?? 0;
+                  {GUNS.map((gun) => {
+                    const count = obtained[gun.name] ?? 0;
                     return (
                       <div
-                        className={`index-item rarity-${reward.rarity.toLowerCase()} ${count === 0 ? "index-locked" : ""}`}
-                        key={reward.name}
+                        className={`index-item rarity-${gun.rarity.toLowerCase()} ${count === 0 ? "index-locked" : ""}`}
+                        key={gun.name}
                       >
-                        <GunPreview className="index-gun" />
+                        <img className="index-gun" src={gun.image} alt="" loading="lazy" />
                         <div className="index-info">
-                          <small>{reward.rarity}</small>
-                          <strong>{count === 0 ? "???" : reward.name}</strong>
-                          <span>${reward.price.toFixed(2)}</span>
+                          <small>{gun.rarity}</small>
+                          <strong>{count === 0 ? "???" : gun.name}</strong>
+                          <span>${gun.price.toFixed(2)}</span>
                         </div>
                         <em className="index-count">{count > 0 ? `x${count}` : ""}</em>
                       </div>
@@ -191,7 +203,7 @@ function Index() {
             onClick={(event) => event.stopPropagation()}
           >
             <span className="reward-label">ITEM UNBOXED</span>
-            <GunPreview className="reward-gun" />
+            <img className="reward-gun" src={reward.image} alt={reward.name} />
             <h2 id="reward-title">{reward.name}</h2>
             <div className="reward-stats">
               <span><small>RARITY</small>{reward.rarity}</span>
