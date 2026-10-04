@@ -52,7 +52,9 @@ function rollGun(): Gun {
     }
   }
   const pool = GUNS.filter((gun) => gun.rarity === rarity);
-  return pool[Math.floor(Math.random() * pool.length)] ?? GUNS[0];
+  const picked = pool[Math.floor(Math.random() * pool.length)] ?? GUNS[0];
+  if (!picked) throw new Error("gun pool is empty");
+  return picked;
 }
 
 function Index() {

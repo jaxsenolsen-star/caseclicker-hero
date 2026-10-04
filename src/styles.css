@@ -258,6 +258,7 @@
 .rarity-restricted { --reward-rarity: oklch(0.65 0.23 305); }
 .rarity-classified { --reward-rarity: oklch(0.66 0.25 345); }
 .rarity-covert { --reward-rarity: oklch(0.65 0.24 25); }
+.rarity-gold { --reward-rarity: oklch(0.78 0.15 85); }
 
 @keyframes payout-pop {
   from { opacity: 0; translate: 0 10px; }
